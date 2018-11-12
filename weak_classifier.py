@@ -64,10 +64,55 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.polarity = None
 		self.threshold = None
 
-	def calc_error(self, weights, labels):
+	#helper functions for calc_error
+	######################################################
+	def make_classification_predictions(self, threshold):
+		predictions = [1 if activation > threshold else -1 for activation in self.activations]
+		return predictions
+
+	def weighted_error_calc(self, weights, labels, classificationPredictions):
 		normalizer = sum(weights)
-		weighted_error = [[weights if labels[i]==k else 0 for k in range(self.activations)] for i in range(len(labels))]
-		return sum(weighted_error)/normalizer
+		error = 0 
+		for idx, pred in enumerate(classificationPredictions):
+			if labels[idx] == pred:
+				error += weights[idx]
+		return error
+
+	def errors_with_correct_polarities(self, errorList):
+		errors = []
+		polarities= []
+		for er in errorList:
+			if er > .5:
+				errors.append(1-er)
+				polarities.append(-1)
+			else:
+				errors.append(er)
+				polarities.append(1)
+
+		return errors, polarities
+		################################################
+
+
+	def calc_error(self, weights, labels):
+		errors = []
+
+		minimum_activation = min(self.activations)
+		maximum_activation = max(self.activations)
+		thresholds = np.linspace(minimum_activation, maximum_activation, 50)
+
+		for threshold in thresholds:
+			predictedClassifications = self.make_classification_predictions(threshold)
+			errors.append(self.weighted_error_calc(weights, labels, predictedClassifications))
+
+		pol_errors, polarities = self.errors_with_correct_polarities(errors)
+
+		min_error = min(pol_errors)
+		min_error_indx = pol_errors.index(min_error)
+		polarity = polarities[min_error_indx]
+		min_threshold = thresholds[min_error_indx]
+
+		self.polarity = polarity
+		return pol_errors, min_error, polarity, min_threshold
 		
 	def predict_image(self, integrated_image):
 		value = self.apply_filter2image(integrated_image)
