@@ -108,11 +108,10 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 		min_error = min(pol_errors)
 		min_error_indx = pol_errors.index(min_error)
-		polarity = polarities[min_error_indx]
-		min_threshold = thresholds[min_error_indx]
 
-		self.polarity = polarity
-		return pol_errors, min_error, polarity, min_threshold
+		self.polarity = polarities[min_error_indx]
+		self.threshold = thresholds[min_error_indx]
+		return min_error
 		
 	def predict_image(self, integrated_image):
 		value = self.apply_filter2image(integrated_image)
