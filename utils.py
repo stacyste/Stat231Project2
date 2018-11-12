@@ -88,8 +88,8 @@ def load_data(pos_data_dir, neg_data_dir, image_w, image_h, subset = False):
 
 def main():
 	i = np.random.randint(5, size=(3, 3, 3))
-	print(i)
-	print(integrate_images(i))
+	print("i: ", i)
+	print("integrated images: ", integrate_images(i))
 	filters = generate_Haar_filters(4, 4, 16, 16, 16, 16)
 	print(len(filters))
 

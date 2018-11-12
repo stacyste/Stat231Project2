@@ -10,6 +10,7 @@ from im_process import image2patches, nms, normalize
 
 
 class Boosting_Classifier:
+
 	def __init__(self, haar_filters, data, labels, num_chosen_wc, num_bins, visualizer, num_cores, style):
 		self.filters = haar_filters
 		self.data = data
@@ -46,11 +47,11 @@ class Boosting_Classifier:
 			wc.activations = wc_activations[wc.id, :]
 		return wc_activations
 	
-	#select weak classifiers to form a strong classifier
-	#after training, by calling self.sc_function(), a prediction can be made
-	#self.chosen_wcs should be assigned a value after self.train() finishes
-	#call Weak_Classifier.calc_error() in this function
-	#cache training results to self.visualizer for visualization
+	#select weak classifiers to form a strong classifier.
+	#after training, by calling self.sc_function(), a prediction can be made.
+	#self.chosen_wcs should be assigned a value after self.train() finishes.
+	#call Weak_Classifier.calc_error() in this function.
+	#cache training results to self.visualizer for visualization.
 	#
 	#
 	#detailed implementation is up to you

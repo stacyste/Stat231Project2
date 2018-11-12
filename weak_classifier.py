@@ -65,10 +65,9 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.threshold = None
 
 	def calc_error(self, weights, labels):
-		######################
-		######## TODO ########
-		######################
-		return
+		normalizer = sum(weights)
+		weighted_error = [[weights if labels[i]==k else 0 for k in range(self.activations)] for i in range(len(labels))]
+		return sum(weighted_error)/normalizer
 		
 	def predict_image(self, integrated_image):
 		value = self.apply_filter2image(integrated_image)
@@ -79,7 +78,7 @@ class Real_Weak_Classifier(Weak_Classifier):
 		super().__init__(id, plus_rects, minus_rects, num_bins)
 		self.thresholds = None #this is different from threshold in ada_weak_classifier, think about it
 		self.bin_pqs = None
-		self.train_assignment = None
+		self.train_assignment = Noneactivations
 
 	def calc_error(self, weights, labels):
 		######################
@@ -96,8 +95,9 @@ def main():
 	plus_rects = [(1, 2, 3, 4)]
 	minus_rects = [(4, 5, 6, 7)]
 	num_bins = 50
-	ada_hf = Ada_Weak_Classifier(plus_rects, minus_rects, num_bins)
-	real_hf = Real_Weak_Classifier(plus_rects, minus_rects, num_bins)
+	id_num = 1
+	ada_hf = Ada_Weak_Classifier(id_num, plus_rects, minus_rects, num_bins)
+	real_hf = Real_Weak_Classifier(id_num, plus_rects, minus_rects, num_bins)
 
 if __name__ == '__main__':
 	main()

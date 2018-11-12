@@ -15,8 +15,8 @@ def main():
 	chosen_wc_cache_dir = 'chosen_wcs.pkl' if not flag_subset else 'chosen_wcs_subset.pkl'
 
 	#data configurations
-	pos_data_dir = 'newface16'
-	neg_data_dir = 'nonface16'
+	pos_data_dir = '../newface16'
+	neg_data_dir = '../nonface16'
 	image_w = 16
 	image_h = 16
 	data, labels = load_data(pos_data_dir, neg_data_dir, image_w, image_h, flag_subset)
@@ -47,7 +47,7 @@ def main():
 
 	boost.visualize()
 
-	original_img = cv2.imread('./Testing_Images/Face_1.jpg', cv2.IMREAD_GRAYSCALE)
+	original_img = cv2.imread('../Testing_Images/Face_1.jpg', cv2.IMREAD_GRAYSCALE)
 	result_img = boost.face_detection(original_img)
 	cv2.imwrite('Result_img_%s.png' % boosting_type, result_img)
 

@@ -36,7 +36,7 @@ def nms(xyxys, overlap_thresh):
 	######################
 	######## TODO ########
 	######################
-	return
+	return xyxys
 
 def normalize(images):
 	standard = np.std(images)
