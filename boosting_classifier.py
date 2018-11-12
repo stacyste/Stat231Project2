@@ -56,7 +56,40 @@ class Boosting_Classifier:
 	#
 	#detailed implementation is up to you
 	#consider caching partial results and using parallel computing
+
+		#for weak_classifier in self.weak_classifiers:
+		#wc_polarities = [wc.apply_filter(self.data) for wc in self.weak_classifiers]
+		#def calc_error(self, weights, labels) set of weights and labels for 1 filter
+
+
+	#sets the threshold and polarity of each 
+	def weak_classifier_errors(self, weights):
+		wc_errors = []
+		for wc in self.weak_classifiers:
+			wc_errors.append(wc.calc_error(weights, self.labels))
+		return wc_errors
+
+	def calculate_alpha(self, selectedClassifierError):
+		return np.log((1-selectedClassifierError)/ selectedClassifierError)
+
+	def update_weights(self, wc, currentWeights, alpha):
+		make_classification_predictions(wc.threshold)
+
+
+		newWeights = [weight*np.exp(alpha*)]
+
 	def train(self, save_dir = None):
+
+		#initialize weights
+		#for T in self.num_chosen_wc
+
+		#find the best classifier
+		# form of chosen_wc: alpha, wc in self.chosen_wcs
+
+		#calculate its error, and alpha
+
+		#update the weights 
+
 		######################
 		######## TODO ########
 		######################
