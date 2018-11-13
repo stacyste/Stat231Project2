@@ -56,45 +56,62 @@ class Boosting_Classifier:
 	#
 	#detailed implementation is up to you
 	#consider caching partial results and using parallel computing
-
-		#for weak_classifier in self.weak_classifiers:
-		#wc_polarities = [wc.apply_filter(self.data) for wc in self.weak_classifiers]
-		#def calc_error(self, weights, labels) set of weights and labels for 1 filter
-
-
-	#sets the threshold and polarity of each 
 	def weak_classifier_errors(self, weights):
-		wc_errors = []
-		for wc in self.weak_classifiers:
-			wc_errors.append(wc.calc_error(weights, self.labels))
+		if self.num_cores == 1:
+			wc_errors = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
+		else:
+			wc_errors = Parallel(n_jobs = self.num_cores)(delayed(wc.calc_error)(weights, self.labels) for wc in self.weak_classifiers) 
 		return wc_errors
+
+	def select_best_weak_classifier(self, wcErrors):
+		return min(wcErrors), wcErrors.index(min(wcErrors))
 
 	def calculate_alpha(self, selectedClassifierError):
 		return np.log((1-selectedClassifierError)/ selectedClassifierError)
 
 	def update_weights(self, wc, currentWeights, alpha):
-		make_classification_predictions(wc.threshold)
+		preds = wc.make_classification_predictions(wc.threshold)
+		classificationIndicator = wc.classification_indicator_function(self.labels, preds)
 
+		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
 
-		newWeights = [weight*np.exp(alpha*)]
+		return newWeights
+
 
 	def train(self, save_dir = None):
-
 		#initialize weights
+		weights = [1/self.data.shape[0]]*self.data.shape[0]
+		chosenWeakClassifiers = []
+
 		#for T in self.num_chosen_wc
+		for t in range(self.num_chosen_wc):
+			#find all errors and choose the best classifer
+			wcErrorList = self.weak_classifier_errors(weights)
+			minError, bestWcIndx = self.select_best_weak_classifier(wcErrorList)
+			bestWeakClassifier = self.weak_classifiers[bestWcIndx]
 
-		#find the best classifier
-		# form of chosen_wc: alpha, wc in self.chosen_wcs
+			print(bestWeakClassifier)
+			#debugging
+			print("threshold: ", bestWeakClassifier.threshold)
+			print("polarity: ", bestWeakClassifier.polarity)
+			print("min error: ", minError)
 
-		#calculate its error, and alpha
+			#calculate alpha and update classifiers
+			alph = self.calculate_alpha(minError)
+			chosenWeakClassifiers.append([alph, bestWeakClassifier])
 
-		#update the weights 
+			print("alpha: ", alph)
 
-		######################
-		######## TODO ########
-		######################
+			#update the weights for the next iteration
+			weights = self.update_weights(bestWeakClassifier, weights, alph)
+			print("udated weights: ", weights[0:10])
+
+		self.chosen_wcs = chosenWeakClassifiers
+
 		if save_dir is not None:
 			pickle.dump(self.chosen_wcs, open(save_dir, 'wb'))
+
+		return chosenWeakClassifiers
 
 	def sc_function(self, image):
 		return np.sum([np.array([alpha * wc.predict_image(image) for alpha, wc in self.chosen_wcs])])			

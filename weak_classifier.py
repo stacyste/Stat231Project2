@@ -70,16 +70,16 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		predictions = [1 if activation > threshold else -1 for activation in self.activations]
 		return predictions
 
-	def correct_classification_indicator_function(self, labels, classificationPredictions):
+	def classification_indicator_function(self, labels, classificationPredictions):
 		return [int(label == prediction) for label,prediction in zip(labels, classificationPredictions)]
 
 	def weighted_error_calc(self, weights, labels, classificationPredictions):
 		normalizer = sum(weights)
-		error = 0 
-		for idx, pred in enumerate(classificationPredictions):
-			if labels[idx] == pred:
-				error += weights[idx]
-		return error
+		correctClassifications = self.classification_indicator_function(labels, classificationPredictions)
+		errList = [weight*indicator for weight, indicator in zip(weights, correctClassifications)]
+
+		return sum(errList)/normalizer
+
 
 	def errors_with_correct_polarities(self, errorList):
 		errors = []
@@ -114,6 +114,7 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 		self.polarity = polarities[min_error_indx]
 		self.threshold = thresholds[min_error_indx]
+		
 		return min_error
 		
 	def predict_image(self, integrated_image):
