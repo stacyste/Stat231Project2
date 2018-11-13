@@ -74,21 +74,21 @@ class Boosting_Classifier:
 			bestWcIndx = wcErrorList.index(minError)
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
 
-			print(bestWeakClassifier)
-			print("threshold: ", bestWeakClassifier.threshold)
-			print("polarity: ", bestWeakClassifier.polarity)
-			print("min error: ", minError)
+			#print(bestWeakClassifier)
+			#print("threshold: ", bestWeakClassifier.threshold)
+			#print("polarity: ", bestWeakClassifier.polarity)
+			#print("min error: ", minError)
 
-			wc_accuracies.append(minError)
+			wc_accuracies.append(1-minError)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
 			chosenWeakClassifiers.append([alph, bestWeakClassifier])
-			print("alpha: ", alph)
+			#print("alpha: ", alph)
 
 			#update the weights for the next iteration
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
-			print("udated weights: ", weights[0:10])
+			#print("udated weights: ", weights[0:10])
 
 		self.chosen_wcs = chosenWeakClassifiers
 		self.visualizer.weak_classifier_accuracies = wc_accuracies
@@ -107,7 +107,6 @@ class Boosting_Classifier:
 	def update_weights(self, wc, currentWeights, alpha):
 		preds = wc.make_classification_predictions(wc.threshold)
 		classificationIndicator = [int(label != prediction*wc.polarity) for label,prediction in zip(self.labels, preds)]
-		print(classificationIndicator)
 		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
 		return newWeights
 
