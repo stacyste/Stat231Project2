@@ -64,38 +64,6 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.polarity = None
 		self.threshold = None
 
-	#helper functions for calc_error
-	######################################################
-	def make_classification_predictions(self, threshold):
-		predictions = [1 if activation > threshold else -1 for activation in self.activations]
-		return predictions
-
-	def classification_indicator_function(self, labels, classificationPredictions):
-		return [int(label == prediction) for label,prediction in zip(labels, classificationPredictions)]
-
-	def weighted_error_calc(self, weights, labels, classificationPredictions):
-		normalizer = sum(weights)
-		correctClassifications = self.classification_indicator_function(labels, classificationPredictions)
-		errList = [weight*indicator for weight, indicator in zip(weights, correctClassifications)]
-
-		return sum(errList)/normalizer
-
-
-	def errors_with_correct_polarities(self, errorList):
-		errors = []
-		polarities= []
-		for er in errorList:
-			if er > .5:
-				errors.append(1-er)
-				polarities.append(-1)
-			else:
-				errors.append(er)
-				polarities.append(1)
-
-		return errors, polarities
-		################################################
-
-
 	def calc_error(self, weights, labels):
 		errors = []
 
@@ -115,7 +83,36 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.polarity = polarities[min_error_indx]
 		self.threshold = thresholds[min_error_indx]
 		return min_error
-		
+
+	#helper functions for calc_error
+	######################################################
+	def make_classification_predictions(self, threshold):
+		return [1 if activation > threshold else -1 for activation in self.activations]
+
+	def weighted_error_calc(self, weights, labels, classificationPredictions):
+		normalizer = sum(weights)
+		incorrectClassifications = self.classification_indicator_function(labels, classificationPredictions)
+		errList = [weight*indicator for weight, indicator in zip(weights, incorrectClassifications)]
+
+		return sum(errList)/normalizer
+
+	def classification_indicator_function(self, labels, classificationPredictions):
+		return [int(label != prediction) for label,prediction in zip(labels, classificationPredictions)]
+
+	def errors_with_correct_polarities(self, errorList):
+		errors = []
+		polarities= []
+		for er in errorList:
+			if er > .5:
+				errors.append(1-er)
+				polarities.append(-1)
+			else:
+				errors.append(er)
+				polarities.append(1)
+
+		return errors, polarities
+		################################################
+
 	def predict_image(self, integrated_image):
 		value = self.apply_filter2image(integrated_image)
 		return self.polarity * np.sign(value - self.threshold)
