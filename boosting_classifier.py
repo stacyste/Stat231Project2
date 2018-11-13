@@ -60,22 +60,30 @@ class Boosting_Classifier:
 		if self.num_cores == 1:
 			wc_errors = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
 		else:
-			wc_errors = Parallel(n_jobs = self.num_cores)(delayed(wc.calc_error)(weights, self.labels) for wc in self.weak_classifiers) 
+			wc_errors = Parallel(n_jobs = self.num_cores, backend = "threading")(delayed(wc.calc_error)(weights, self.labels) for wc in self.weak_classifiers) 
 		return wc_errors
 
 	def select_best_weak_classifier(self, wcErrors):
 		return min(wcErrors), wcErrors.index(min(wcErrors))
 
 	def calculate_alpha(self, selectedClassifierError):
-		return np.log((1-selectedClassifierError)/ selectedClassifierError)
+		if selectedClassifierError == 0:
+			alph = 0
+		else:
+			alph = np.log(1-selectedClassifierError) - np.log(selectedClassifierError)
+		return alph
 
 	def update_weights(self, wc, currentWeights, alpha):
 		preds = wc.make_classification_predictions(wc.threshold)
 		classificationIndicator = wc.classification_indicator_function(self.labels, preds)
-
 		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
-
 		return newWeights
+
+	def set_visualizer_attributes(self):
+		self.visualizer.histogram_intervals = histogram_intervals
+		self.visualizer.top_wc_intervals = top_wc_intervals
+		self.visualizer.weak_classifier_accuracies = {}
+		self.visualizer.strong_classifier_scores = {}
 
 
 	def train(self, save_dir = None):
@@ -90,21 +98,20 @@ class Boosting_Classifier:
 			minError, bestWcIndx = self.select_best_weak_classifier(wcErrorList)
 			bestWeakClassifier = self.weak_classifiers[bestWcIndx]
 
-			print(bestWeakClassifier)
-			#debugging
-			print("threshold: ", bestWeakClassifier.threshold)
-			print("polarity: ", bestWeakClassifier.polarity)
-			print("min error: ", minError)
+			#print(bestWeakClassifier)
+			#print("threshold: ", bestWeakClassifier.threshold)
+			#print("polarity: ", bestWeakClassifier.polarity)
+			#print("min error: ", minError)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
 			chosenWeakClassifiers.append([alph, bestWeakClassifier])
 
-			print("alpha: ", alph)
+			#print("alpha: ", alph)
 
 			#update the weights for the next iteration
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
-			print("udated weights: ", weights[0:10])
+			#print("udated weights: ", weights[0:10])
 
 		self.chosen_wcs = chosenWeakClassifiers
 

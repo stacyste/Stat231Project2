@@ -114,7 +114,6 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 		self.polarity = polarities[min_error_indx]
 		self.threshold = thresholds[min_error_indx]
-		
 		return min_error
 		
 	def predict_image(self, integrated_image):
