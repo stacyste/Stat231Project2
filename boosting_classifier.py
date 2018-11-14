@@ -119,7 +119,7 @@ class Boosting_Classifier:
 		return wc_errors
 
 	def set_strong_classifier_scores(self):
-		scores = [int(self.sc_function(img)) for img in self.data]
+		scores = [int(self.(img)) for img in self.data]
 		self.visualizer.strong_classifier_scores = scores
 		return scores
 	############################################################################
