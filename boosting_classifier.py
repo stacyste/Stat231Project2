@@ -59,44 +59,45 @@ class Boosting_Classifier:
 	#consider caching partial results and using parallel computing
 
 	def train(self, save_dir = None):
-		chosenWeakClassifiers = []
-		wc_accuracies = []
+		self.chosen_wcs =[]
+		#wc_accuracies = []
 
 		#initialize weights
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
+		
 		#for T in self.num_chosen_wc
 		for t in range(self.num_chosen_wc):
 
 			#find all errors and choose the best classifer
 			wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
-			#wcErrorList = self.weak_classifier_errors(weights)
 			minError = min(wcErrorList)
 			bestWcIndx = wcErrorList.index(minError)
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
 
-			#print(bestWeakClassifier)
-			#print("threshold: ", bestWeakClassifier.threshold)
-			#print("polarity: ", bestWeakClassifier.polarity)
-			#print("min error: ", minError)
+			print(bestWeakClassifier)
+			print("threshold: ", bestWeakClassifier.threshold)
+			print("polarity: ", bestWeakClassifier.polarity)
+			print("min error: ", minError)
 
-			wc_accuracies.append(1-minError)
+			#wc_accuracies.append(1-minError)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
-			chosenWeakClassifiers.append([alph, bestWeakClassifier])
-			#print("alpha: ", alph)
+			print("alpha: ", alph)
 
-			#update the weights for the next iteration
+			self.chosen_wcs.append([alph, bestWeakClassifier])
+			print("Updated weak classifier attribute: ", len(self.chosen_wcs))
+			self.visualizer.strong_classifier_scores[t] = [self.sc_function(img) for img in self.data]
+			print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
+			self.visualizer.weak_classifier_accuracies[t] = (1-minError)
+
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
-			#print("udated weights: ", weights[0:10])
-
-		self.chosen_wcs = chosenWeakClassifiers
-		self.visualizer.weak_classifier_accuracies = wc_accuracies
+			print("...")
 
 		if save_dir is not None:
 			pickle.dump(self.chosen_wcs, open(save_dir, 'wb'))
 
-		return chosenWeakClassifiers
+		return self.chosen_wcs
 
 	def calculate_alpha(self, selectedClassifierError):
 		if selectedClassifierError == 0:
@@ -110,6 +111,7 @@ class Boosting_Classifier:
 		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
 		return newWeights
 
+
 	#########################################################################
 	def weak_classifier_errors(self, weights):
 		if self.num_cores == 1:
@@ -119,7 +121,7 @@ class Boosting_Classifier:
 		return wc_errors
 
 	def set_strong_classifier_scores(self):
-		scores = [int(self.(img)) for img in self.data]
+		scores = [int(self.sc_function(img)) for img in self.data]
 		self.visualizer.strong_classifier_scores = scores
 		return scores
 	############################################################################
