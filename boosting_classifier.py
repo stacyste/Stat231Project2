@@ -60,7 +60,7 @@ class Boosting_Classifier:
 
 	def train(self, save_dir = None):
 		self.chosen_wcs =[]
-		#wc_accuracies = []
+		chosenwcIDList = []
 
 		#initialize weights
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
@@ -73,8 +73,7 @@ class Boosting_Classifier:
 			minError = min(wcErrorList)
 			bestWcIndx = wcErrorList.index(minError)
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
-
-			#wc_accuracies.append(1-minError)
+			chosenwcIDList.append(bestWcIndx)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
@@ -84,10 +83,14 @@ class Boosting_Classifier:
 			#print("Updated weak classifier attribute: ", len(self.chosen_wcs))
 			self.visualizer.strong_classifier_scores[t] = [self.sc_function(img) for img in self.data]
 			#print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
-			self.visualizer.weak_classifier_accuracies[t] = (1-minError)
-
+			
+			#create visualizer objects
+			weakClassifierIndices = list(set(range(len(self.weak_classifiers))) - set(chosenwcIDList))
+			weakClassifierErrorList = [wcErrorList[i] for i in weakClassifierIndices]
+			numberwcToSave = 10
+			self.visualizer.weak_classifier_accuracies[t] = np.partition(weakClassifierErrorList, numberwcToSave-1)[:numberwcToSave]
+			
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
-			#print("...")
 
 		if save_dir is not None:
 			pickle.dump(self.chosen_wcs, open(save_dir, 'wb'))
