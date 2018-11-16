@@ -66,7 +66,7 @@ class Boosting_Classifier:
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
 		
 		#for T in self.num_chosen_wc
-		for t in range(self.num_chosen_wc):
+		for t in tqdm(range(self.num_chosen_wc)):
 
 			#find all errors and choose the best classifer
 			wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
@@ -74,25 +74,20 @@ class Boosting_Classifier:
 			bestWcIndx = wcErrorList.index(minError)
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
 
-			print(bestWeakClassifier)
-			print("threshold: ", bestWeakClassifier.threshold)
-			print("polarity: ", bestWeakClassifier.polarity)
-			print("min error: ", minError)
-
 			#wc_accuracies.append(1-minError)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
-			print("alpha: ", alph)
+			#print("alpha: ", alph)
 
 			self.chosen_wcs.append([alph, bestWeakClassifier])
-			print("Updated weak classifier attribute: ", len(self.chosen_wcs))
+			#print("Updated weak classifier attribute: ", len(self.chosen_wcs))
 			self.visualizer.strong_classifier_scores[t] = [self.sc_function(img) for img in self.data]
-			print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
+			#print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
 			self.visualizer.weak_classifier_accuracies[t] = (1-minError)
 
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
-			print("...")
+			#print("...")
 
 		if save_dir is not None:
 			pickle.dump(self.chosen_wcs, open(save_dir, 'wb'))
