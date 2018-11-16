@@ -3,6 +3,7 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import pdb
+import matplotlib.patches as patches
 
 #image is a 2D np array
 def integrate_image(image):
@@ -85,6 +86,33 @@ def load_data(pos_data_dir, neg_data_dir, image_w, image_h, subset = False):
 	assert(data.shape[0] == labels.shape[0])
 	print('Load in %d images, %d faces, %d non-faces' % (data.shape[0], pos_data.shape[0], neg_data.shape[0]))
 	return data, labels
+
+def visualize_haar_filter(topwcs, grid_size = (4,5), figsize = (10,8)):
+    fig = plt.figure(figsize = figsize)
+    fig.subplots_adjust(left = 0, right = 1, bottom = 0, top = 1, 
+                        hspace = 0.05, wspace = 0.05)
+    for indx, wc in enumerate(topwcs):
+        
+        ax = fig.add_subplot(grid_size[0], grid_size[1], indx+1, xticks=[], yticks=[])
+        ax.set_xlim(0, 16)
+        ax.set_ylim(0, 16)
+        
+        for i in range(len(wc.plus_rects)):
+            pos_xy = (wc.plus_rects[i][0], wc.plus_rects[i][1])
+            pos_width = wc.plus_rects[i][2] -wc.plus_rects[i][0] +1
+            pos_height = wc.plus_rects[i][3] - wc.plus_rects[i][1] +1
+
+            rect_pos = patches.Rectangle(pos_xy,pos_width,pos_height, edgecolor = 'black', facecolor='black')
+            ax.add_patch(rect_pos)
+
+        for j in range(len(wc.minus_rects)):
+            neg_xy = (wc.minus_rects[j][0], wc.minus_rects[j][1])
+            neg_width = wc.minus_rects[j][2] -wc.minus_rects[j][0] +1
+            neg_height = wc.minus_rects[j][3] - wc.minus_rects[j][1] +1
+
+            rect_neg = patches.Rectangle(neg_xy,neg_width,neg_height,linewidth=1,edgecolor='black',facecolor='none')
+            ax.add_patch(rect_neg)
+    plt.show()
 
 def main():
 	i = np.random.randint(5, size=(3, 3, 3))
