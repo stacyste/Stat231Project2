@@ -97,9 +97,18 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 	#helper functions for calc_error
 	######################################################
+	def makePredictionLabel(self, activation, threshold):
+		if activation > threshold:
+			return 1
+		else: 
+			return -1
 
 	def make_classification_predictions(self, threshold):
-		return [1 if activation > threshold else -1 for activation in self.activations]
+		if self.num_cores == 1:
+				actList = [1 if activation > threshold else -1 for activation in self.activations]
+		else:
+			actList = Parallel(n_jobs = self.num_cores)(delayed(makePredictionLabel)(activation, threshold) for activation in self.activations)
+		return actList
 
 	def weighted_error_calc(self, weights, labels, classificationPredictions):
 		normalizer = sum(weights)
