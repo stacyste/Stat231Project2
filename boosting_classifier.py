@@ -64,16 +64,25 @@ class Boosting_Classifier:
 
 		#initialize weights
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
-		
+
+		indxSCtoSave = [1, 10, 20, 50, 100]
+
 		#for T in self.num_chosen_wc
 		for t in tqdm(range(self.num_chosen_wc)):
-
+			if self.num_cores == 1:
+				wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
+			else:
+				wcErrorList = Parallel(n_jobs = self.num_cores)(delayed(wc.calc_error)(weights, self.labels) for wc in self.weak_classifiers)
 			#find all errors and choose the best classifer
-			wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
-			minError = min(wcErrorList)
-			bestWcIndx = wcErrorList.index(minError)
+			#wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
+
+			minError, pol, thresh  = min(wcErrorList, key = lambda t: t[0])
+			
+			bestWcIndx = wcErrorList.index((minError, pol, thresh))
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
-			chosenwcIDList.append(bestWcIndx)
+			bestWeakClassifier.threshold = thresh
+			bestWeakClassifier.polarity = pol
+			chosenwcIDList.append(bestWeakClassifier.id)
 
 			#calculate alpha and update classifiers
 			alph = self.calculate_alpha(minError)
@@ -81,15 +90,17 @@ class Boosting_Classifier:
 
 			self.chosen_wcs.append([alph, bestWeakClassifier])
 			#print("Updated weak classifier attribute: ", len(self.chosen_wcs))
+
 			self.visualizer.strong_classifier_scores[t] = [self.sc_function(img) for img in self.data]
 			#print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
 			
 			#create visualizer objects
-			weakClassifierIndices = list(set(range(len(self.weak_classifiers))) - set(chosenwcIDList))
-			weakClassifierErrorList = [wcErrorList[i] for i in weakClassifierIndices]
-			numberwcToSave = 10
-			self.visualizer.weak_classifier_accuracies[t] = np.partition(weakClassifierErrorList, numberwcToSave-1)[:numberwcToSave]
-			
+			if t in indxSCtoSave:
+				weakClassifierIndices = list(set(range(len(self.weak_classifiers))) - set(chosenwcIDList))
+				weakClassifierErrorList = [wcErrorList[i][0] for i in weakClassifierIndices]
+				numberwcToSave = 10
+				self.visualizer.weak_classifier_accuracies[t] = np.partition(weakClassifierErrorList, numberwcToSave-1)[:numberwcToSave]
+				
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
 
 		if save_dir is not None:

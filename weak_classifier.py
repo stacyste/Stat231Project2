@@ -65,27 +65,39 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.threshold = None
 
 	def calc_error(self, weights, labels):
-		errors = []
+		minError = 1
+		minThreshold = None
+		minPolarity = None
 
+		#interpolated thresholds to try
 		minimum_activation = min(self.activations)
 		maximum_activation = max(self.activations)
 		thresholds = np.linspace(minimum_activation, maximum_activation, 50)
 
 		for threshold in thresholds:
 			predictedClassifications = self.make_classification_predictions(threshold)
-			errors.append(self.weighted_error_calc(weights, labels, predictedClassifications))
+			
+			currentError = self.weighted_error_calc(weights, labels, predictedClassifications)
+			currentPolarity = 1
 
-		pol_errors, polarities = self.errors_with_correct_polarities(errors)
+			#flip polarity if necessary
+			if currentError > .5:
+				currentError = 1 - currentError
+				currentPolarity = -1
 
-		min_error = min(pol_errors)
-		min_error_indx = pol_errors.index(min_error)
+			#update minimum error if it is smaller than before
+			if currentError < minError:
+				minError = currentError
+				minThreshold = threshold
+				minPolarity = currentPolarity
 
-		self.polarity = polarities[min_error_indx]
-		self.threshold = thresholds[min_error_indx]
-		return min_error
+		#self.polarity = minPolarity
+		#self.threshold = minThreshold
+		return minError, minPolarity, minThreshold
 
 	#helper functions for calc_error
 	######################################################
+
 	def make_classification_predictions(self, threshold):
 		return [1 if activation > threshold else -1 for activation in self.activations]
 
@@ -96,8 +108,24 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 		return sum(errList)/normalizer
 
+	#Indicator for errors, 1 if error, 0 if correct
 	def classification_indicator_function(self, labels, classificationPredictions):
 		return [int(label != prediction) for label,prediction in zip(labels, classificationPredictions)]
+
+		################################################
+
+
+		#Currently Unused
+		#####################################################
+	def calculate_error_with_polarity(self, er):
+		if er > .5:
+			error = 1-er
+			polarity = -1
+		else:
+			error = er
+			polarity = 1
+
+		return error, polarity
 
 	def errors_with_correct_polarities(self, errorList):
 		errors = []
@@ -111,7 +139,7 @@ class Ada_Weak_Classifier(Weak_Classifier):
 				polarities.append(1)
 
 		return errors, polarities
-		################################################
+		######################################################
 
 	def predict_image(self, integrated_image):
 		value = self.apply_filter2image(integrated_image)

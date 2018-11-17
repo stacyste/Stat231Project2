@@ -12,7 +12,7 @@ class Visualizer:
 	
 	def draw_histograms(self):
 		for t in self.histogram_intervals:
-			scores = self.strong_classifier_scores[t-1]
+			scores = self.strong_classifier_scores[t]
 			pos_scores = [scores[idx] for idx, label in enumerate(self.labels) if label == 1]
 			neg_scores = [scores[idx] for idx, label in enumerate(self.labels) if label == -1]
 
@@ -28,7 +28,7 @@ class Visualizer:
 	def draw_rocs(self):
 		plt.figure()
 		for t in self.top_wc_intervals:
-			scores = self.strong_classifier_scores[t-1]
+			scores = self.strong_classifier_scores[t]
 			fpr, tpr, _ = roc_curve(self.labels, scores)
 			plt.plot(fpr, tpr, label = 'No. %d Weak Classifiers' % t)
 		plt.legend(loc = 'lower right')
@@ -40,13 +40,14 @@ class Visualizer:
 	def draw_wc_accuracies(self):
 		plt.figure()
 		for t in self.top_wc_intervals:
-			accuracies = self.weak_classifier_accuracies[t-1]
+			accuracies = [1-err for err in self.weak_classifier_accuracies[t]]
 			plt.plot(accuracies, label = 'After %d Selection' % t)
 		plt.ylabel('Accuracy')
 		plt.xlabel('Weak Classifiers')
 		plt.title('Top 1000 Weak Classifier Accuracies')
 		plt.legend(loc = 'upper right')
 		plt.savefig('Weak Classifier Accuracies')
+
 
 if __name__ == '__main__':
 	main()
