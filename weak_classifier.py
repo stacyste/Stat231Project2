@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from joblib import Parallel, delayed
 
+
 class Weak_Classifier(ABC):
 	#initialize a harr filter with the positive and negative rects
 	#rects are in the form of [x1, y1, x2, y2] 0-index
@@ -11,6 +12,7 @@ class Weak_Classifier(ABC):
 		self.minus_rects = minus_rects
 		self.num_bins = num_bins
 		self.activations = None
+		self.interpolatedThresholds = None
 
 	#take in one integrated image and return the value after applying the image
 	#integrated_image is a 2D np array
@@ -75,9 +77,15 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		thresholds = np.linspace(minimum_activation, maximum_activation, 50)
 
 		for threshold in thresholds:
-			predictedClassifications = self.make_classification_predictions(threshold)
+			predictedClassifications = [1 if activation > threshold else -1 for activation in self.activations]
 			
-			currentError = self.weighted_error_calc(weights, labels, predictedClassifications)
+			#currentError = self.weighted_error_calc(weights, labels, predictedClassifications)
+			normalizer = sum(weights)
+			incorrectClassifications = [int(label != prediction) for label,prediction in zip(labels, predictedClassifications)]
+			errList = [weight*indicator for weight, indicator in zip(weights, incorrectClassifications)]
+
+
+
 			currentPolarity = 1
 
 			#flip polarity if necessary
@@ -97,20 +105,11 @@ class Ada_Weak_Classifier(Weak_Classifier):
 
 	#helper functions for calc_error
 	######################################################
-	def makePredictionLabel(self, activation, threshold):
-		if activation > threshold:
-			return 1
-		else: 
-			return -1
 
-	def make_classification_predictions(self, threshold):
-		if self.num_cores == 1:
-				actList = [1 if activation > threshold else -1 for activation in self.activations]
-		else:
-			actList = Parallel(n_jobs = self.num_cores)(delayed(makePredictionLabel)(activation, threshold) for activation in self.activations)
-		return actList
+	def make_classification_predictions(self, threshold, num_cores=1):
+		return [1 if activation > threshold else -1 for activation in self.activations]
 
-	def weighted_error_calc(self, weights, labels, classificationPredictions):
+	def weighted_error_calc(self, weights, labels, classificationPredictions, num_cores=1):
 		normalizer = sum(weights)
 		incorrectClassifications = self.classification_indicator_function(labels, classificationPredictions)
 		errList = [weight*indicator for weight, indicator in zip(weights, incorrectClassifications)]

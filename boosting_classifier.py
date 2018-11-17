@@ -65,7 +65,8 @@ class Boosting_Classifier:
 		#initialize weights
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
 
-		indxSCtoSave = [1, 10, 20, 50, 100]
+		#indxSCtoSave = [1, 10, 20, 50, 100]
+		indxSCtoSave = [0, 1, 2, 3]
 
 		#for T in self.num_chosen_wc
 		for t in tqdm(range(self.num_chosen_wc)):
@@ -98,7 +99,7 @@ class Boosting_Classifier:
 			if t in indxSCtoSave:
 				weakClassifierIndices = list(set(range(len(self.weak_classifiers))) - set(chosenwcIDList))
 				weakClassifierErrorList = [wcErrorList[i][0] for i in weakClassifierIndices]
-				numberwcToSave = 10
+				numberwcToSave = 1
 				self.visualizer.weak_classifier_accuracies[t] = np.partition(weakClassifierErrorList, numberwcToSave-1)[:numberwcToSave]
 				
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
@@ -120,6 +121,24 @@ class Boosting_Classifier:
 		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
 		return newWeights
 
+	def calculate_thresholds(self, save_dir = None, load_dir = None):
+		if load_dir is not None and os.path.exists(load_dir):
+			print('[Find cached thresholds, %s loading...]' % load_dir)
+			wc_thresholds = np.load(load_dir)
+		else:
+			if self.num_cores == 1:
+				wc_thresholds = [np.linspace(min(wc.activations), max(wc.activations), self.num_bins) for wc in self.weak_classifiers]
+			else:
+				wc_thresholds = Parallel(n_jobs = self.num_cores)(delayed(np.linspace)(min(wc.activations), max(wc.activations), self.num_bins) for wc in self.weak_classifiers)
+			wc_thresholds = np.array(wc_thresholds)
+			
+			if save_dir is not None:
+				print('Writing results to disk...')
+				np.save(save_dir, wc_thresholds)
+				print('[Saved calculated thresholds to %s]' % save_dir)
+		for wc in self.weak_classifiers:
+			wc.interpolatedThresholds = wc_thresholds[wc.id, :]
+		return wc_thresholds
 
 	#########################################################################
 	def weak_classifier_errors(self, weights):
