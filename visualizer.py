@@ -40,7 +40,7 @@ class Visualizer:
 	def draw_wc_accuracies(self):
 		plt.figure()
 		for t in self.top_wc_intervals:
-			accuracies = [1-err for err in self.weak_classifier_accuracies[t]]
+			accuracies = np.sort([1-err for err in self.weak_classifier_accuracies[t]])
 			plt.plot(accuracies, label = 'After %d Selection' % t)
 		plt.ylabel('Accuracy')
 		plt.xlabel('Weak Classifiers')

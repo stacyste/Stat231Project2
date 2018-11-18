@@ -61,12 +61,10 @@ class Boosting_Classifier:
 	def train(self, save_dir = None):
 		self.chosen_wcs =[]
 		chosenwcIDList = []
-
-		#initialize weights
 		weights = [1/self.data.shape[0]]*self.data.shape[0]
 
-		#indxSCtoSave = [1, 10, 20, 50, 100]
-		indxSCtoSave = [0, 1, 2, 3]
+		indxSCtoSave = [1, 10, 20, 50, 100]
+		#indxSCtoSave = [0, 1, 2, 3]
 
 		#for T in self.num_chosen_wc
 		for t in tqdm(range(self.num_chosen_wc)):
@@ -76,30 +74,36 @@ class Boosting_Classifier:
 				wcErrorList = Parallel(n_jobs = self.num_cores)(delayed(wc.calc_error)(weights, self.labels) for wc in self.weak_classifiers)
 			#find all errors and choose the best classifer
 			#wcErrorList = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]
-
+			#print("Weak classifier error List: ", wcErrorList)
 			minError, pol, thresh  = min(wcErrorList, key = lambda t: t[0])
 			
+			#print("min error: ", minError, " Polarity: ", pol, " Thresholds: ", thresh)
 			bestWcIndx = wcErrorList.index((minError, pol, thresh))
+			self.weak_classifiers[bestWcIndx].threshold = thresh
+			self.weak_classifiers[bestWcIndx].polarity = pol
+
 			bestWeakClassifier = copy.deepcopy(self.weak_classifiers[bestWcIndx])
-			bestWeakClassifier.threshold = thresh
-			bestWeakClassifier.polarity = pol
 			chosenwcIDList.append(bestWeakClassifier.id)
 
+			print("Threshold: ", bestWeakClassifier.threshold)
+			print("polarity: ", bestWeakClassifier.polarity)
 			#calculate alpha and update classifiers
-			alph = self.calculate_alpha(minError)
+			alph = .5*(np.log(1-minError) - np.log(minError))
 			#print("alpha: ", alph)
 
 			self.chosen_wcs.append([alph, bestWeakClassifier])
 			#print("Updated weak classifier attribute: ", len(self.chosen_wcs))
 
 			self.visualizer.strong_classifier_scores[t] = [self.sc_function(img) for img in self.data]
+
+
 			#print("strong classifier scores: ", self.visualizer.strong_classifier_scores[t])
 			
 			#create visualizer objects
 			if t in indxSCtoSave:
 				weakClassifierIndices = list(set(range(len(self.weak_classifiers))) - set(chosenwcIDList))
 				weakClassifierErrorList = [wcErrorList[i][0] for i in weakClassifierIndices]
-				numberwcToSave = 1
+				numberwcToSave = min([len(weakClassifierErrorList), 1000])
 				self.visualizer.weak_classifier_accuracies[t] = np.partition(weakClassifierErrorList, numberwcToSave-1)[:numberwcToSave]
 				
 			weights = self.update_weights(bestWeakClassifier, weights, alph)
@@ -109,17 +113,14 @@ class Boosting_Classifier:
 
 		return self.chosen_wcs
 
-	def calculate_alpha(self, selectedClassifierError):
-		if selectedClassifierError == 0:
-			return 0
-		else:
-			return .5*(np.log(1-selectedClassifierError) - np.log(selectedClassifierError))
 
-	def update_weights(self, wc, currentWeights, alpha):
-		preds = wc.make_classification_predictions(wc.threshold)
-		classificationIndicator = [int(label != prediction*wc.polarity) for label,prediction in zip(self.labels, preds)]
-		newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
-		return newWeights
+	def update_weights(self, wc, weights, alpha):
+		preds = np.sign(np.subtract.outer(wc.threshold, wc.activations))*wc.polarity
+		newWeights = weights*np.exp(-alpha*preds*self.labels)
+		#weights[labels != preds*wc.polarity] = weights[labels != preds*wc.polarity]*np.exp(alpha)
+		#classificationIndicator = [int(label != prediction*wc.polarity) for label,prediction in zip(self.labels, preds)]
+		#newWeights = [weight*np.exp(alpha*indicator) for weight, indicator in zip(currentWeights, classificationIndicator)]
+		return newWeights/sum(newWeights)
 
 	def calculate_thresholds(self, save_dir = None, load_dir = None):
 		if load_dir is not None and os.path.exists(load_dir):
@@ -141,6 +142,10 @@ class Boosting_Classifier:
 		return wc_thresholds
 
 	#########################################################################
+	#Unused
+	def calculate_alpha(self, selectedClassifierError):
+		return .5*(np.log(1-selectedClassifierError) - np.log(selectedClassifierError))
+
 	def weak_classifier_errors(self, weights):
 		if self.num_cores == 1:
 			wc_errors = [wc.calc_error(weights, self.labels) for wc in self.weak_classifiers]

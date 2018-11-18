@@ -67,45 +67,54 @@ class Ada_Weak_Classifier(Weak_Classifier):
 		self.threshold = None
 
 	def calc_error(self, weights, labels):
-		minError = 1
-		minThreshold = None
-		minPolarity = None
 
-		#interpolated thresholds to try
-		minimum_activation = min(self.activations)
-		maximum_activation = max(self.activations)
-		thresholds = np.linspace(minimum_activation, maximum_activation, 50)
+		#print("weightsum: ", sum(weights))
+		predictedClassifications  = np.sign(np.subtract.outer(self.interpolatedThresholds, self.activations))
+		#print("predicted classifications: ", predictedClassifications)
+		errList = ((weights*np.array(labels != predictedClassifications)).sum(axis=1))
+		#print("errors: ", errList)
 
-		for threshold in thresholds:
-			predictedClassifications = [1 if activation > threshold else -1 for activation in self.activations]
+		polarities = np.full(len(errList), 1) #initialize all polarities to 1
+		polarities[errList > .5] = -1 
+		errList[errList > .5] = 1-errList[errList > .5]
+		#print("Polarities: ", polarities)
+		#print("polarized error list: ", errList)
+
+		minimumErrorIndex = np.argmin(errList) 
+		#print("min Index: ", minimumErrorIndex)
+		minError = errList[minimumErrorIndex]
+		minPolarity = polarities[minimumErrorIndex]
+		minThreshold = self.interpolatedThresholds[minimumErrorIndex]
+		##for threshold in thresholds:
+		#	predictedClassifications = [1 if activation > threshold else -1 for activation in self.activations]
 			
 			#currentError = self.weighted_error_calc(weights, labels, predictedClassifications)
-			normalizer = sum(weights)
-			incorrectClassifications = [int(label != prediction) for label,prediction in zip(labels, predictedClassifications)]
-			errList = [weight*indicator for weight, indicator in zip(weights, incorrectClassifications)]
+		#	normalizer = sum(weights)
+		#	incorrectClassifications = [int(label != prediction) for label,prediction in zip(labels, predictedClassifications)]
+		#	errList = [weight*indicator for weight, indicator in zip(weights, incorrectClassifications)]
 
 
 
-			currentPolarity = 1
+		#	currentPolarity = 1
 
 			#flip polarity if necessary
-			if currentError > .5:
-				currentError = 1 - currentError
-				currentPolarity = -1
+		#	if currentError > .5:
+		#		currentError = 1 - currentError
+		#		currentPolarity = -1
 
 			#update minimum error if it is smaller than before
-			if currentError < minError:
-				minError = currentError
-				minThreshold = threshold
-				minPolarity = currentPolarity
+		#	if currentError < minError:
+		#		minError = currentError
+		#		minThreshold = threshold
+		#		minPolarity = currentPolarity
 
 		#self.polarity = minPolarity
 		#self.threshold = minThreshold
 		return minError, minPolarity, minThreshold
 
-	#helper functions for calc_error
-	######################################################
 
+	######################################################
+	#Unused
 	def make_classification_predictions(self, threshold, num_cores=1):
 		return [1 if activation > threshold else -1 for activation in self.activations]
 
@@ -120,11 +129,7 @@ class Ada_Weak_Classifier(Weak_Classifier):
 	def classification_indicator_function(self, labels, classificationPredictions):
 		return [int(label != prediction) for label,prediction in zip(labels, classificationPredictions)]
 
-		################################################
 
-
-		#Currently Unused
-		#####################################################
 	def calculate_error_with_polarity(self, er):
 		if er > .5:
 			error = 1-er
